@@ -1,5 +1,5 @@
 # Microcosm
-A toy generative model for physics observation.
+A toy generative model for dynamical systems observations.
 
 ## Installation
 
