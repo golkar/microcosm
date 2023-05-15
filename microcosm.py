@@ -32,15 +32,14 @@ def check_series(series):
     return True
 
 
-def generate_lorenz(num_steps, step_size, init_point=None, params=None, rng=None):
+def generate_lorenz(num_steps, step_size, init_point=None, params=None, rng=None, dtype='float16'):
     if rng == None:
         rng = np.random.default_rng()
 
     if params == None:
-        params = np.abs([8, 2.66, 25] * (1 + 0.4 * rng.normal(size=3)))
+        params = np.abs([8, 2.66, 25] * (1 + 0.4 * rng.normal(size=3))).astype(dtype)
 
-    if init_point == None:
-        init_point = 3 * rng.normal(size=3)
+    if init_point == None:         init_point = 3 * rng.normal(size=3).astype(dtype)
 
     command_line = (
         "--init_point",
@@ -61,7 +60,7 @@ def generate_lorenz(num_steps, step_size, init_point=None, params=None, rng=None
     chaotic_system = DynamicSystem(input_args=command_line, show_log=False)
     chaotic_system.run()
 
-    series = chaotic_system.model.get_coordinates()
+    series = chaotic_system.model.get_coordinates().astype(dtype)
 
     if check_series(series):
         return (
@@ -85,6 +84,7 @@ def sample_world(
     new_dim=None,
     seed=1337,
     num_hierarchies=None,
+    data_type="float16",
 ):
     rng = np.random.default_rng(seed)
 
@@ -94,7 +94,7 @@ def sample_world(
     sys_multip = rng.integers(0, num_step_multips, num_sys)
 
     series = []
-    series_param_dict = {'num_sys':num_sys}
+    series_dict = {'num_sys':num_sys}
 
     for j, (num, multip_num) in enumerate(zip(sys_number, sys_multip)):
         success = False
@@ -104,13 +104,13 @@ def sample_world(
         if sys_name == "lorenz":
             for i in range(num_tries):
                 sub_series, param_dict, success = generate_lorenz(
-                    num_steps=multip * num_steps, step_size=700, rng=rng
+                    num_steps=multip * num_steps, step_size=700, rng=rng, dtype=data_type
                 )
                 if success:
                     series.append(sub_series[::multip])
                     param_dict["name"] = "lorenz"
                     param_dict["step_multip"] = multip
-                    series_param_dict[j] = param_dict
+                    series_dict['sys{}'.format(j)] = param_dict
                     break
                 else:
                     if verbose:
@@ -118,11 +118,11 @@ def sample_world(
             if not success:
                 raise Exception("Generation failed after {} tries.".format(i))
 
-    series = np.concatenate(series, 1)
+    series = np.concatenate(series, 1).astype(data_type)
 
     if normalize:
         m, s = series.mean(0), series.std(0)
-        series_param_dict["normalization"] = [m, s]
+        series_dict["normalization"] = [m, s]
         series = (series - m) / s
 
     old_dim = series.shape[1]
@@ -139,7 +139,7 @@ def sample_world(
 
         W = rng.normal(size=[old_dim, new_dim])
 
-        l, L, r = np.linalg.svd(W, full_matrices=False)
+        l, L, r = [el.astype(data_type) for el in np.linalg.svd(W, full_matrices=False)]
 
     else:
         assert not change_dim, "Cannot have change_dim with rotate=False."
@@ -165,7 +165,7 @@ def sample_world(
         n = L_dim // num_hierarchies
         L = [x for el in sys_scales for x in [el] * n]
         L = [1] * (L_dim - len(L)) + L
-        L = np.diag(L)
+        L = np.diag(L).astype(data_type)
 
     else:
         assert num_hierarchies == None, "Cannot have num_hierarchies without dilation."
@@ -174,9 +174,10 @@ def sample_world(
 
     series = multiply(matrices=[series, l, L, r])
 
-    series_param_dict["embedding"] = [l, L, r]
+    series_dict["embedding"] = [l, L.diagonal(), r]
+    series_dict["data"] = series
 
-    return series, series_param_dict
+    return series_dict
 
 
 def multiply(matrices):
