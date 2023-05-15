@@ -32,14 +32,25 @@ def check_series(series):
     return True
 
 
-def generate_lorenz(num_steps, step_size, init_point=None, params=None, rng=None, dtype='float16'):
+def generate_lorenz(
+    num_steps,
+    step_size,
+    init_point=None,
+    params=None,
+    rng=None,
+    dtype="float16",
+    to_list=False,
+):
+    tl = lambda x: list(x) if to_list else x
+
     if rng == None:
         rng = np.random.default_rng()
 
     if params == None:
         params = np.abs([8, 2.66, 25] * (1 + 0.4 * rng.normal(size=3))).astype(dtype)
 
-    if init_point == None:         init_point = 3 * rng.normal(size=3).astype(dtype)
+    if init_point == None:
+        init_point = 3 * rng.normal(size=3).astype(dtype)
 
     command_line = (
         "--init_point",
@@ -60,12 +71,17 @@ def generate_lorenz(num_steps, step_size, init_point=None, params=None, rng=None
     chaotic_system = DynamicSystem(input_args=command_line, show_log=False)
     chaotic_system.run()
 
-    series = chaotic_system.model.get_coordinates().astype(dtype)
+    # not changing the data-type here to avoid numerical errors when computing the std
+    series = chaotic_system.model.get_coordinates()
 
     if check_series(series):
         return (
             series,
-            {"params": params, "init_point": init_point, "step_size": step_size},
+            {
+                "params": tl(params),
+                "init_point": tl(init_point),
+                "step_size": step_size,
+            },
             True,
         )
     else:
@@ -85,7 +101,21 @@ def sample_world(
     seed=1337,
     num_hierarchies=None,
     data_type="float16",
+    to_list=False,
+    graceful_fail=False,
 ):
+    def tl(x):
+        if to_list:
+            if len(x.shape) == 1:
+                return list(x)
+            if len(x.shape) == 2:
+                return [list(el) for el in x]
+            elif len(x.shape) == 3:
+                return [[list(el) for el in l_] for l_ in x]
+
+        else:
+            return x
+
     rng = np.random.default_rng(seed)
 
     if num_sys == None:
@@ -94,7 +124,7 @@ def sample_world(
     sys_multip = rng.integers(0, num_step_multips, num_sys)
 
     series = []
-    series_dict = {'num_sys':num_sys}
+    series_dict = {"num_sys": num_sys}
 
     for j, (num, multip_num) in enumerate(zip(sys_number, sys_multip)):
         success = False
@@ -104,26 +134,36 @@ def sample_world(
         if sys_name == "lorenz":
             for i in range(num_tries):
                 sub_series, param_dict, success = generate_lorenz(
-                    num_steps=multip * num_steps, step_size=700, rng=rng, dtype=data_type
+                    num_steps=multip * num_steps,
+                    step_size=700,
+                    rng=rng,
+                    dtype=data_type,
+                    to_list=to_list,
                 )
                 if success:
                     series.append(sub_series[::multip])
                     param_dict["name"] = "lorenz"
                     param_dict["step_multip"] = multip
-                    series_dict['sys{}'.format(j)] = param_dict
+                    series_dict["sys{}".format(j)] = param_dict
                     break
                 else:
                     if verbose:
                         print("Bound fail! (attempt {})".format(i))
             if not success:
-                raise Exception("Generation failed after {} tries.".format(i))
+                if graceful_fail:
+                    return {}
+                else:
+                    raise Exception("Generation failed after {} tries.".format(i))
 
-    series = np.concatenate(series, 1).astype(data_type)
-
+    series = np.concatenate(series, 1)
     if normalize:
         m, s = series.mean(0), series.std(0)
-        series_dict["normalization"] = [m, s]
+        series_dict["normalization"] = [
+            tl(el) for el in [m.astype(data_type), s.astype(data_type)]
+        ]
         series = (series - m) / s
+
+    series = series.astype(data_type)
 
     old_dim = series.shape[1]
 
@@ -174,8 +214,8 @@ def sample_world(
 
     series = multiply(matrices=[series, l, L, r])
 
-    series_dict["embedding"] = [l, L.diagonal(), r]
-    series_dict["data"] = series
+    series_dict["embedding"] = [tl(el) for el in [l, L.diagonal(), r]]
+    series_dict["data"] = tl(series)
 
     return series_dict
 
