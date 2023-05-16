@@ -4,10 +4,10 @@ import numpy as np
 sys.path.append("../chaospy/")
 from src.dynamic_system import DynamicSystem
 
-max_sys = 5
+MAX_SYS = 5
 default_len = 500
-max_dim = 40
-min_dim = 3
+MAX_DIM = 40
+MIN_DIM = 3
 max_hierarchies = 3
 scales = [10, 100]  # other than 1
 assert (
@@ -103,6 +103,9 @@ def sample_world(
     data_type="float16",
     to_list=False,
     graceful_fail=False,
+    max_dim=MAX_DIM,
+    min_dim=MIN_DIM,
+    max_sys=MAX_SYS,
 ):
     def tl(x):
         if to_list:

@@ -6,4 +6,4 @@
 module load slurm
 
 
-srun bash -c 'python draw_many.py 10000'
+srun bash -c 'python draw_many_small.py 11000'
