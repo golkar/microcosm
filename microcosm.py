@@ -122,7 +122,7 @@ def sample_world(
     rng = np.random.default_rng(seed)
 
     if num_sys == None:
-        num_sys = rng.integers(1, 6)
+        num_sys = rng.integers(1, 1 + max_sys)
     sys_number = rng.integers(0, num_chaotic_sys, num_sys)
     sys_multip = rng.integers(0, num_step_multips, num_sys)
 
