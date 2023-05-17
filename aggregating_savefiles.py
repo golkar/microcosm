@@ -3,7 +3,7 @@
 from os import listdir
 from os.path import isfile, join
 
-mypath = r"/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_small"
+mypath = r"/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_xsmall"
 onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
 
 # %%
@@ -12,7 +12,7 @@ for i, file in enumerate(onlyfiles):
     print("{}: Loading file {}".format(i, file))
 
     with open(
-        r"/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_small/{}".format(file),
+        r"{}/{}".format(mypath, file),
         "r",
     ) as f:
         out = f.read()
@@ -25,9 +25,7 @@ for i, file in enumerate(onlyfiles):
     print("Writing to file.")
 
     with open(
-        r"/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_small/clean/{:04d}".format(
-            i
-        ),
+        r"{}/clean/{:04d}".format(mypath, i),
         "w",
     ) as f:
         for el in out2:
@@ -41,7 +39,7 @@ test_set = aggr[int(len(aggr) * 0.9) :]
 
 # %%
 with open(
-    r"/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_small/clean/train_set",
+    r"{}/clean/train_set".format(mypath),
     "w",
 ) as f:
     for el in train_set:
@@ -49,7 +47,7 @@ with open(
         f.write("{}\n".format(el))
 
 with open(
-    r"/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_small/clean/val_set",
+    r"{}/clean/val_set".format(mypath),
     "w",
 ) as f:
     for el in val_set:
@@ -57,12 +55,9 @@ with open(
         f.write("{}\n".format(el))
 
 with open(
-    r"/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_small/clean/test_set",
+    r"{}/clean/test_set".format(mypath),
     "w",
 ) as f:
     for el in test_set:
         # write each item on a new line
         f.write("{}\n".format(el))
-
-
-# %%

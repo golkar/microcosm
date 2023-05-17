@@ -28,6 +28,6 @@ if __name__ == "__main__":
         r"{}{}".format(path, filename),
         "w",
     ) as f:
-        for sample in samples:
+        for el in samples:
             # write each item on a new line
             f.write("{}\n".format(el))
