@@ -218,9 +218,10 @@ def sample_world(
     series = multiply(matrices=[series, l, L, r])
 
     series_dict["embedding"] = [tl(el) for el in [l, L.diagonal(), r]]
-    series_dict["data"] = tl(series)
 
-    return series_dict
+    output = {"description": series_dict, "data": tl(series)}
+
+    return output
 
 
 def multiply(matrices):

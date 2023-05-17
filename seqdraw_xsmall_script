@@ -1,0 +1,9 @@
+#!/bin/bash
+#Run five tasks (in this case MPI subprocesses) per node (the default is one per core).
+#SBATCH -N20 -p ccn --ntasks-per-node=5
+
+# Start from an "empty" module collection.
+module load slurm
+
+
+srun bash -c 'python draw_many_xsmall.py 11000'

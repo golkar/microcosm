@@ -1262,6 +1262,15 @@
       "lstrip": false,
       "rstrip": false,
       "normalized": false
+    },
+    {
+      "id": 140,
+      "special": true,
+      "content": "[PAD]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
     }
   ],
   "normalizer": null,

@@ -44,7 +44,7 @@ vocab = [
 vocab = ["'sys{}':".format(el) for el in range(5)] + vocab
 
 tokenizer.add_tokens(vocab)
-tokenizer.add_special_tokens(["[END]", "[MASK]"])
+tokenizer.add_special_tokens(["[END]", "[MASK]", "[PAD]"])
 
 tokenizer.post_processor = processors.ByteLevel(trim_offsets=False)
 tokenizer.decoder = decoders.ByteLevel()
@@ -59,6 +59,7 @@ wrapped_tokenizer = PreTrainedTokenizerFast(
     bos_token="[END]",
     eos_token="[END]",
     mask_token="[MASK]",
+    pad_token="[PAD]",
 )
 # %%
 # Testing after restarting kernel
@@ -76,7 +77,4 @@ sample = dataset[6]
 
 encoding = wrapped_tokenizer.encode(sample)
 print(wrapped_tokenizer.decode(encoding) == sample.replace(" ", ""))
-# %%
-
-encoding = wrapped_tokenizer.__call__(dataset)
 # %%
