@@ -101,7 +101,7 @@ config = RobertaConfig(
     vocab_size=vocab_size,
     max_position_embeddings=3000,
     num_attention_heads=6,
-    num_hidden_layers=9,
+    num_hidden_layers=8,
     type_vocab_size=1,
 )
 
@@ -111,7 +111,7 @@ print(f"{model.num_parameters():,}")
 # %%
 
 train_size = 400_000
-test_size = 10_000
+test_size = 5_000
 
 downsampled_dataset = tokenized_ds["train"].train_test_split(
     train_size=train_size, test_size=test_size, seed=42

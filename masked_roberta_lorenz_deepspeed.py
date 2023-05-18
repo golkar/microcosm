@@ -1,4 +1,11 @@
 # %%
+# token = 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
+
+from huggingface_hub import interpreter_login
+
+interpreter_login()
+
+# %%
 from transformers import (
     RobertaForMaskedLM,
     RobertaConfig,
@@ -46,8 +53,8 @@ print(f"{model.num_parameters():,}")
 
 # %%
 
-train_size = 10_000
-test_size = int(0.1 * train_size)
+train_size = 400_000
+test_size = 5_000
 
 downsampled_dataset = tokenized_ds["train"].train_test_split(
     train_size=train_size, test_size=test_size, seed=42
@@ -75,10 +82,10 @@ trainer = Trainer(
     eval_dataset=downsampled_dataset["test"],
 )
 # %%
-# import math
+import math
 
-# eval_results = trainer.evaluate()
-# print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
+eval_results = trainer.evaluate()
+print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 
 # %%
 
@@ -90,12 +97,7 @@ import math
 print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 # %%
 
-# %%
-# token = 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
 
-from huggingface_hub import interpreter_login
-
-interpreter_login()
 # %%
 trainer.push_to_hub()
 # %%
