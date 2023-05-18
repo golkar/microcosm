@@ -1,62 +1,4 @@
 # %%
-# token = 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
-
-from huggingface_hub import interpreter_login
-
-interpreter_login()
-
-# %%
-
-from transformers import (
-    RobertaForMaskedLM,
-    RobertaConfig,
-    PreTrainedTokenizerFast,
-    DataCollatorForLanguageModeling,
-)
-from datasets import DatasetDict
-
-
-# %%
-
-# Loading the datasets into a datasetdict
-path = "/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_xsmall/clean/"
-ds = DatasetDict.from_text(
-    {"train": path + "train_set", "test": path + "test_set", "val": path + "val_set"}
-)
-
-
-# %%
-
-# Loading the tokenizer
-
-wrapped_tokenizer = PreTrainedTokenizerFast(
-    tokenizer_file="tokenizer_lorenz.json",
-    bos_token="[END]",
-    eos_token="[END]",
-    mask_token="?",
-    pad_token="[PAD]",
-)
-
-vocab_size = len(wrapped_tokenizer.vocab)
-
-# %%
-
-# Efficient parallel tokenization and saving by splitting the dataset into chunks
-
-
-def tokenize_fnc(sample):
-    return wrapped_tokenizer(sample["text"])
-
-
-tokenized_ds = ds.map(
-    tokenize_fnc,
-    batched=True,
-    num_proc=31,
-    remove_columns="text",
-)
-
-tokenized_ds.save_to_disk(path + "tokenized_ds")
-# %%
 from transformers import (
     RobertaForMaskedLM,
     RobertaConfig,
@@ -88,12 +30,6 @@ data_collator = DataCollatorForLanguageModeling(
     tokenizer=wrapped_tokenizer, mlm_probability=0.2
 )
 
-# an example of the output of the data_collator
-samples = [tokenized_ds["train"][i] for i in range(1)]
-
-for chunk in data_collator(samples)["input_ids"]:
-    print(wrapped_tokenizer.decode(chunk))
-
 
 # %%
 
@@ -110,8 +46,8 @@ print(f"{model.num_parameters():,}")
 
 # %%
 
-train_size = 400_000
-test_size = 10_000
+train_size = 10_000
+test_size = int(0.1 * train_size)
 
 downsampled_dataset = tokenized_ds["train"].train_test_split(
     train_size=train_size, test_size=test_size, seed=42
@@ -128,6 +64,7 @@ training_args = TrainingArguments(
     save_steps=10_000,
     save_total_limit=2,
     prediction_loss_only=True,
+    deepspeed="./ds_config.json",
 )
 
 trainer = Trainer(
@@ -138,17 +75,27 @@ trainer = Trainer(
     eval_dataset=downsampled_dataset["test"],
 )
 # %%
-import math
+# import math
 
-eval_results = trainer.evaluate()
-print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
+# eval_results = trainer.evaluate()
+# print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 
 # %%
 
 trainer.train()
 # %%
 eval_results = trainer.evaluate()
+import math
+
 print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
+# %%
+
+# %%
+# token = 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
+
+from huggingface_hub import interpreter_login
+
+interpreter_login()
 # %%
 trainer.push_to_hub()
 # %%
