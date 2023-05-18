@@ -15,7 +15,7 @@
     {
       "id": 18,
       "special": true,
-      "content": "[MASK]",
+      "content": "?",
       "single_word": false,
       "lstrip": false,
       "rstrip": false,

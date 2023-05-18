@@ -51,7 +51,7 @@ tokenizer = Tokenizer(
 )
 
 
-tokenizer.add_special_tokens(["[END]", "[MASK]", "[PAD]"])
+tokenizer.add_special_tokens(["[END]", "?", "[PAD]"])
 tokenizer.add_tokens(vocab_words)
 
 file = "/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_xsmall/clean/0000"
@@ -70,8 +70,6 @@ def get_training_corpus():
         yield dataset[i : i + 1000]
 
 
-from tokenizers import trainers
-
 tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
 
 tokenizer.post_processor = processors.ByteLevel(trim_offsets=False)
@@ -87,7 +85,7 @@ wrapped_tokenizer = PreTrainedTokenizerFast(
     tokenizer_file="tokenizer_lorenz.json",
     bos_token="[END]",
     eos_token="[END]",
-    mask_token="[MASK]",
+    mask_token="?",
     pad_token="[PAD]",
 )
 # %%
