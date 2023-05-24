@@ -1,9 +1,9 @@
 # %%
 # token = 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
 
-from huggingface_hub import interpreter_login
+# from huggingface_hub import interpreter_login
 
-interpreter_login()
+# interpreter_login()
 
 # %%
 from transformers import (
@@ -44,7 +44,7 @@ config = RobertaConfig(
     vocab_size=vocab_size,
     max_position_embeddings=3000,
     num_attention_heads=6,
-    num_hidden_layers=9,
+    num_hidden_layers=7,
     type_vocab_size=1,
 )
 
@@ -64,7 +64,7 @@ downsampled_dataset = tokenized_ds["train"].train_test_split(
 from transformers import Trainer, TrainingArguments
 
 training_args = TrainingArguments(
-    output_dir="./roberta_lorenz_xsmall",
+    output_dir="./roberta_lorenz_xsmall_2gpu",
     overwrite_output_dir=True,
     num_train_epochs=1,
     per_device_train_batch_size=8,
@@ -84,22 +84,22 @@ trainer = Trainer(
 # %%
 import math
 
-eval_results = trainer.evaluate()
-print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
+# eval_results = trainer.evaluate()
+# print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 
 # %%
 
 trainer.train()
 # %%
-eval_results = trainer.evaluate()
 import math
 
-print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
+# eval_results = trainer.evaluate()
+# print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 # %%
 
 
 # %%
-trainer.push_to_hub()
+# trainer.push_to_hub()
 # %%
 
 from transformers import pipeline
