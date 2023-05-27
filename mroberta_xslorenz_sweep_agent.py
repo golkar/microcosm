@@ -47,15 +47,13 @@ downsampled_dataset = tokenized_ds["train"].train_test_split(
 
 
 def train(config=None):
+    # log wandb created time
+
     # Initialize a new wandb run
     with wandb.init(config=config):
         # If called by wandb.agent, as below,
         # this config will be set by Sweep Controller
         wandb_config = wandb.config
-
-        import pprint
-
-        pprint.pprint(dict(wandb_config))
 
         # collating, padding and random masking
         data_collator = DataCollatorForLanguageModeling(
@@ -79,7 +77,7 @@ def train(config=None):
 
         # defining the training args
         training_args = TrainingArguments(
-            output_dir="./saved_models/mroberta_xslorenz",
+            output_dir="./saved_models/xslorenz_mroberta",
             overwrite_output_dir=True,
             num_train_epochs=wandb_config.num_train_epochs,
             per_device_train_batch_size=8,
@@ -87,8 +85,8 @@ def train(config=None):
             logging_steps=100,
             report_to="wandb",
             evaluation_strategy="steps",
-            save_steps=500,
-            eval_steps=500,
+            save_steps=5000,
+            eval_steps=5000,
             load_best_model_at_end=True,
             learning_rate=wandb_config.learning_rate,
             warmup_steps=wandb_config.warmup_steps,
@@ -119,7 +117,7 @@ def train(config=None):
 
 # %%
 
-sweep_id = "6kikxymo"
-wandb.agent(sweep_id, train, count=100, project="mroberta_xslorenz_test")
+sweep_id = "bm2wbfb1"
+wandb.agent(sweep_id, train, count=100, project="xslorenz_mroberta")
 
 # %%

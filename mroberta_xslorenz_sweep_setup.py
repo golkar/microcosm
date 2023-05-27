@@ -1,6 +1,8 @@
 # %%
-import wandb, pprint
+import wandb, pprint, os
 
+# Setting the wandb notebook name environment variable
+os.environ["WANDB_NOTEBOOK_NAME"] = "mroberta_xslorenz_sweep_setup.py"
 wandb.login()
 
 sweep_config = {"method": "random"}
@@ -33,6 +35,6 @@ sweep_config["metric"] = metric
 pprint.pprint(sweep_config)
 # %%
 
-sweep_id = wandb.sweep(sweep_config, project="mroberta_xslorenz_test")
-# sweep_id = "6kikxymo"
+sweep_id = wandb.sweep(sweep_config, project="xslorenz_mroberta")
+# sweep_id = "bm2wbfb1"
 # %%
