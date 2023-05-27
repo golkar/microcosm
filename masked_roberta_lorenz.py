@@ -1,67 +1,67 @@
 # %%
-# token = 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
 
-from huggingface_hub import interpreter_login
+import huggingface_hub
+import wandb
 
-interpreter_login()
+wandb.login()
 
+token = "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"
+huggingface_hub.login(token=token, add_to_git_credential=True)
+
+# # %%
+
+# from transformers import (
+#     RobertaForMaskedLM,
+#     RobertaConfig,
+#     PreTrainedTokenizerFast,
+#     DataCollatorForLanguageModeling,
+# )
+# from datasets import DatasetDict
+
+
+# # %%
+# # Loading the datasets into a datasetdict
+# path = "/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_xsmall/clean/"
+# ds = DatasetDict.from_text(
+#     {"train": path + "train_set", "test": path + "test_set", "val": path + "val_set"}
+# )
+
+
+# # %%
+# # Loading the tokenizer
+
+# wrapped_tokenizer = PreTrainedTokenizerFast(
+#     tokenizer_file="tokenizer_lorenz.json",
+#     bos_token="[END]",
+#     eos_token="[END]",
+#     mask_token="?",
+#     pad_token="[PAD]",
+# )
+
+# vocab_size = len(wrapped_tokenizer.vocab)
+
+# # %%
+# # Efficient parallel tokenization and saving by splitting the dataset into chunks
+
+# def tokenize_fnc(sample):
+#     return wrapped_tokenizer(sample["text"])
+
+
+# tokenized_ds = ds.map(
+#     tokenize_fnc,
+#     batched=True,
+#     num_proc=31,
+#     remove_columns="text",
+# )
+
+# tokenized_ds.save_to_disk(path + "tokenized_ds")
 # %%
-
 from transformers import (
     RobertaForMaskedLM,
     RobertaConfig,
     PreTrainedTokenizerFast,
     DataCollatorForLanguageModeling,
-)
-from datasets import DatasetDict
-
-
-# %%
-
-# Loading the datasets into a datasetdict
-path = "/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_xsmall/clean/"
-ds = DatasetDict.from_text(
-    {"train": path + "train_set", "test": path + "test_set", "val": path + "val_set"}
-)
-
-
-# %%
-
-# Loading the tokenizer
-
-wrapped_tokenizer = PreTrainedTokenizerFast(
-    tokenizer_file="tokenizer_lorenz.json",
-    bos_token="[END]",
-    eos_token="[END]",
-    mask_token="?",
-    pad_token="[PAD]",
-)
-
-vocab_size = len(wrapped_tokenizer.vocab)
-
-# %%
-
-# Efficient parallel tokenization and saving by splitting the dataset into chunks
-
-
-def tokenize_fnc(sample):
-    return wrapped_tokenizer(sample["text"])
-
-
-tokenized_ds = ds.map(
-    tokenize_fnc,
-    batched=True,
-    num_proc=31,
-    remove_columns="text",
-)
-
-tokenized_ds.save_to_disk(path + "tokenized_ds")
-# %%
-from transformers import (
-    RobertaForMaskedLM,
-    RobertaConfig,
-    PreTrainedTokenizerFast,
-    DataCollatorForLanguageModeling,
+    EarlyStoppingCallback,
 )
 from datasets import DatasetDict
 
@@ -101,8 +101,10 @@ config = RobertaConfig(
     vocab_size=vocab_size,
     max_position_embeddings=3000,
     num_attention_heads=6,
-    num_hidden_layers=8,
-    type_vocab_size=1,
+    num_hidden_layers=12,
+    type_vocab_size=2,
+    hidden_size=120,
+    intermediate_size=4 * 128,
 )
 
 model = RobertaForMaskedLM(config=config)
@@ -110,8 +112,11 @@ print(f"{model.num_parameters():,}")
 
 # %%
 
-train_size = 400_000
-test_size = 5_000
+# train_size = 400_000
+# test_size = 5_000
+
+train_size = 10_000
+test_size = 1000
 
 downsampled_dataset = tokenized_ds["train"].train_test_split(
     train_size=train_size, test_size=test_size, seed=42
@@ -120,6 +125,7 @@ downsampled_dataset = tokenized_ds["train"].train_test_split(
 
 from transformers import Trainer, TrainingArguments
 
+
 training_args = TrainingArguments(
     output_dir="./roberta_lorenz_xsmall",
     overwrite_output_dir=True,
@@ -127,8 +133,18 @@ training_args = TrainingArguments(
     per_device_train_batch_size=8,
     save_steps=10_000,
     save_total_limit=2,
-    prediction_loss_only=True,
+    logging_steps=3,
+    evaluation_strategy="steps",
+    eval_steps=5,
+    # prediction_loss_only=True,
+    report_to="wandb",
+    load_best_model_at_end=True,
 )
+
+
+def compute_metrics(eval_preds):
+    return {}
+
 
 trainer = Trainer(
     model=model,
@@ -136,12 +152,16 @@ trainer = Trainer(
     data_collator=data_collator,
     train_dataset=downsampled_dataset["train"],
     eval_dataset=downsampled_dataset["test"],
+    compute_metrics=compute_metrics,
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
 )
-# %%
-import math
 
-eval_results = trainer.evaluate()
-print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
+
+# # %%
+# import math
+
+# eval_results = trainer.evaluate()
+# print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 
 # %%
 
@@ -150,6 +170,7 @@ trainer.train()
 eval_results = trainer.evaluate()
 print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 # %%
+wandb.finish()
 trainer.push_to_hub()
 # %%
 
