@@ -157,3 +157,4 @@ cython_debug/
 coding.py
 wandb/
 saved_models/
+sweeptaskfile_*

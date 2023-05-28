@@ -94,7 +94,7 @@ def train(config=None):
             fp16=wandb_config.fp16,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            deepspeed="./ds_config.json",
+            # deepspeed="./ds_config.json",
         )
 
         # An empty compute_metrics function to just log val loss
@@ -121,7 +121,21 @@ def train(config=None):
 
 # %%
 
-sweep_id = "da7pd9yg"
-wandb.agent(sweep_id, train, count=100, project="xslorenz_mroberta")
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    # add sweepid as text argument
+
+    parser.add_argument(
+        "--sweepid",
+        type=str,
+        help="The run id of the wandb run to resume",
+    )
+
+    args = parser.parse_args()
+
+    wandb.agent(args.sweepid, train, count=100, project="xslorenz_mroberta")
 
 # %%

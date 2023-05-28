@@ -1,0 +1,8 @@
+cd ~/projects/microcosm ; conda activate gptLY ;  python mroberta_xslorenz_sweep_agent.py --sweepid  rgnxd2hb &> ${DISBATCH_NAMETASKS}_${DISBATCH_JOBID}_${DISBATCH_TASKID}.log 
+cd ~/projects/microcosm ; conda activate gptLY ;  python mroberta_xslorenz_sweep_agent.py --sweepid  rgnxd2hb &> ${DISBATCH_NAMETASKS}_${DISBATCH_JOBID}_${DISBATCH_TASKID}.log 
+cd ~/projects/microcosm ; conda activate gptLY ;  python mroberta_xslorenz_sweep_agent.py --sweepid  rgnxd2hb &> ${DISBATCH_NAMETASKS}_${DISBATCH_JOBID}_${DISBATCH_TASKID}.log 
+cd ~/projects/microcosm ; conda activate gptLY ;  python mroberta_xslorenz_sweep_agent.py --sweepid  rgnxd2hb &> ${DISBATCH_NAMETASKS}_${DISBATCH_JOBID}_${DISBATCH_TASKID}.log 
+cd ~/projects/microcosm ; conda activate gptLY ;  python mroberta_xslorenz_sweep_agent.py --sweepid  rgnxd2hb &> ${DISBATCH_NAMETASKS}_${DISBATCH_JOBID}_${DISBATCH_TASKID}.log 
+cd ~/projects/microcosm ; conda activate gptLY ;  python mroberta_xslorenz_sweep_agent.py --sweepid  rgnxd2hb &> ${DISBATCH_NAMETASKS}_${DISBATCH_JOBID}_${DISBATCH_TASKID}.log 
+cd ~/projects/microcosm ; conda activate gptLY ;  python mroberta_xslorenz_sweep_agent.py --sweepid  rgnxd2hb &> ${DISBATCH_NAMETASKS}_${DISBATCH_JOBID}_${DISBATCH_TASKID}.log 
+cd ~/projects/microcosm ; conda activate gptLY ;  python mroberta_xslorenz_sweep_agent.py --sweepid  rgnxd2hb &> ${DISBATCH_NAMETASKS}_${DISBATCH_JOBID}_${DISBATCH_TASKID}.log 
