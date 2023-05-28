@@ -1,9 +1,5 @@
 # %%
-import wandb, os
-
-# Setting the wandb notebook name environment variable
-os.environ["WANDB_NOTEBOOK_NAME"] = "mroberta_xslorenz_sweep_agent.py"
-wandb.login()
+import wandb, argparse, deepspeed, time, json, os
 
 
 # %%
@@ -49,11 +45,31 @@ downsampled_dataset = tokenized_ds["train"].train_test_split(
 def train(config=None):
     # log wandb created time
 
+    is_master = cmd_args.local_rank == 0
+
+    if not is_master:
+        # pause 5 seconds to wait for master to finish setting up
+        print("Waiting for master to finish setting up...")
+        time.sleep(20)
+
+        # read wandb config
+        with open("/tmp/wandb_config.json", "r") as f:
+            config = dict(json.load(f))
+
+        # delete wandb config file
+        os.remove("/tmp/wandb_config.json")
+
     # Initialize a new wandb run
-    with wandb.init(config=config):
+    with wandb.init(config=config, mode=None if is_master else "disabled"):
         # If called by wandb.agent, as below,
         # this config will be set by Sweep Controller
         wandb_config = wandb.config
+
+        if is_master:
+            # write wandb config file as a dict to a file in tmp
+            print("Writing wandb config to /tmp/wandb_config.json")
+            with open("/tmp/wandb_config.json", "w") as f:
+                json.dump(dict(wandb_config), f)
 
         # collating, padding and random masking
         data_collator = DataCollatorForLanguageModeling(
@@ -80,7 +96,7 @@ def train(config=None):
             output_dir=wandb.run.dir + "/model",
             overwrite_output_dir=True,
             num_train_epochs=wandb_config.num_train_epochs,
-            per_device_train_batch_size=8,
+            per_device_train_batch_size=4,
             save_total_limit=2,
             logging_steps=200,
             report_to="wandb",
@@ -121,7 +137,29 @@ def train(config=None):
 
 # %%
 
-sweep_id = "da7pd9yg"
-wandb.agent(sweep_id, train, count=100, project="xslorenz_mroberta")
+if __name__ == "__main__":
+    # Get args
+    parser = argparse.ArgumentParser(description="My training script.")
+    parser.add_argument(
+        "--local_rank",
+        type=int,
+        default=-1,
+        help="local rank passed from distributed launcher",
+    )
+
+    # Include DeepSpeed configuration arguments
+    parser = deepspeed.add_config_arguments(parser)
+    cmd_args = parser.parse_args()
+
+    sweep_id = "da7pd9yg"
+
+    if cmd_args.local_rank == 0:  # only on main process
+        # Initialize wandb run
+        wandb.agent(sweep_id, train, count=100, project="xslorenz_mroberta")
+    else:
+        train(config={})
+
+    # wandb.agent(sweep_id, train, count=100, project="xslorenz_mroberta")
+
 
 # %%

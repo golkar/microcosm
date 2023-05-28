@@ -46,11 +46,11 @@ downsampled_dataset = tokenized_ds["train"].train_test_split(
 # defining the model initialization function
 
 
-def train(config=None):
+def train(run_id):
     # log wandb created time
 
     # Initialize a new wandb run
-    with wandb.init(config=config):
+    with wandb.init(id=run_id, resume="must"):
         # If called by wandb.agent, as below,
         # this config will be set by Sweep Controller
         wandb_config = wandb.config
@@ -113,15 +113,12 @@ def train(config=None):
             callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
         )
 
-        trainer.train()
+        trainer.train(resume_from_checkpoint=True)
 
         # Saving the trainer state
         trainer.save_state()
 
 
 # %%
-
-sweep_id = "da7pd9yg"
-wandb.agent(sweep_id, train, count=100, project="xslorenz_mroberta")
 
 # %%
