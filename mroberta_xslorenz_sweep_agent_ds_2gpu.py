@@ -110,7 +110,7 @@ def train(config=None):
             fp16=wandb_config.fp16,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            deepspeed="./ds_config.json",
+            # deepspeed="./ds_config.json",
         )
 
         # An empty compute_metrics function to just log val loss
@@ -131,9 +131,6 @@ def train(config=None):
 
         trainer.train()
 
-        # Saving the trainer state
-        trainer.save_state()
-
 
 # %%
 
@@ -147,19 +144,24 @@ if __name__ == "__main__":
         help="local rank passed from distributed launcher",
     )
 
-    # Include DeepSpeed configuration arguments
-    parser = deepspeed.add_config_arguments(parser)
-    cmd_args = parser.parse_args()
+    # add sweepid as text argument
 
-    sweep_id = "da7pd9yg"
+    parser.add_argument(
+        "--sweepid",
+        type=str,
+        help="The run id of the wandb run to resume",
+    )
+
+    # # Include DeepSpeed configuration arguments
+    # parser = deepspeed.add_config_arguments(parser)
+
+    cmd_args = parser.parse_args()
 
     if cmd_args.local_rank == 0:  # only on main process
         # Initialize wandb run
-        wandb.agent(sweep_id, train, count=100, project="xslorenz_mroberta")
+        wandb.agent(cmd_args.sweepid, train, count=1, project="xslorenz_mroberta")
     else:
         train(config={})
-
-    # wandb.agent(sweep_id, train, count=100, project="xslorenz_mroberta")
 
 
 # %%

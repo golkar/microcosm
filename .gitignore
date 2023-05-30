@@ -158,3 +158,5 @@ coding.py
 wandb/
 saved_models/
 sweeptaskfile_*
+*slurm*
+events.out*

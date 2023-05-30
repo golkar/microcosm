@@ -1,9 +1,10 @@
 # %%
 
 import huggingface_hub
-import wandb
 
-wandb.login()
+# import wandb
+
+# wandb.login()
 
 token = "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"
 huggingface_hub.login(token=token, add_to_git_credential=True)
@@ -91,11 +92,13 @@ data_collator = DataCollatorForLanguageModeling(
 # an example of the output of the data_collator
 samples = [tokenized_ds["train"][i] for i in range(1)]
 
-for chunk in data_collator(samples)["input_ids"]:
-    print(wrapped_tokenizer.decode(chunk))
+# for chunk in data_collator(samples)["input_ids"]:
+#     print(wrapped_tokenizer.decode(chunk))
 
 
 # %%
+
+hidden_size = 720 * 2
 
 config = RobertaConfig(
     vocab_size=vocab_size,
@@ -103,8 +106,8 @@ config = RobertaConfig(
     num_attention_heads=6,
     num_hidden_layers=12,
     type_vocab_size=2,
-    hidden_size=120,
-    intermediate_size=4 * 128,
+    hidden_size=hidden_size,
+    intermediate_size=4 * hidden_size,
 )
 
 model = RobertaForMaskedLM(config=config)
@@ -112,11 +115,11 @@ print(f"{model.num_parameters():,}")
 
 # %%
 
-# train_size = 400_000
-# test_size = 5_000
+train_size = 800_000
+test_size = 5_000
 
-train_size = 10_000
-test_size = 1000
+# train_size = 10_000
+# test_size = 1000
 
 downsampled_dataset = tokenized_ds["train"].train_test_split(
     train_size=train_size, test_size=test_size, seed=42
@@ -129,15 +132,14 @@ from transformers import Trainer, TrainingArguments
 training_args = TrainingArguments(
     output_dir="./roberta_lorenz_xsmall",
     overwrite_output_dir=True,
-    num_train_epochs=1,
-    per_device_train_batch_size=8,
-    save_steps=10_000,
+    num_train_epochs=2,
+    per_device_train_batch_size=4,
     save_total_limit=2,
-    logging_steps=3,
     evaluation_strategy="steps",
-    eval_steps=5,
+    save_steps=5000,
+    eval_steps=5000,
     # prediction_loss_only=True,
-    report_to="wandb",
+    # report_to="wandb",
     load_best_model_at_end=True,
 )
 
@@ -170,7 +172,7 @@ trainer.train()
 # eval_results = trainer.evaluate()
 # print(f">>> Perplexity: {math.exp(eval_results['eval_loss']):.2f}")
 # %%
-wandb.finish()
+# wandb.finish()
 trainer.push_to_hub()
 # %%
 

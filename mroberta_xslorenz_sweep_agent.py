@@ -134,8 +134,15 @@ if __name__ == "__main__":
         help="The run id of the wandb run to resume",
     )
 
+    parser.add_argument(
+        "--local_rank",
+        type=int,
+        default=-1,
+        help="local rank passed from distributed launcher",
+    )
+
     args = parser.parse_args()
 
-    wandb.agent(args.sweepid, train, count=100, project="xslorenz_mroberta")
+    wandb.agent(args.sweepid, train, count=1, project="xslorenz_mroberta")
 
 # %%

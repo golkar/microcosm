@@ -10,9 +10,9 @@ sweep_config = {"method": "grid"}
 metric = {"name": "loss", "goal": "minimize"}
 
 parameters_dict = {
-    "learning_rate": {"values": [1.5**n * 1e-4 for n in range(0, 8)]},
+    "learning_rate": {"values": [1.5**n * 1e-5 for n in range(1, 7)]},
     "max_position_embeddings": {"value": 3000},
-    "hidden_size": {"value": 360},  # needs to be divisible by num_attention_heads
+    "hidden_size": {"value": 1440},  # needs to be divisible by num_attention_heads
     "num_hidden_layers": {"value": 12},
     "num_attention_heads": {"value": 6},
     "hidden_act": {"value": "gelu"},
@@ -47,6 +47,19 @@ sweep_id = wandb.sweep(sweep_config, project="xslorenz_mroberta")
 
 # width 360 sweeps
 # sweep_id = "rgnxd2hb" grid [1.5**n * 1e-4 for n in range(0, 8)]
+
+
+# width 480 sweeps
+# sweep_id = "wsktzs9o" grid [1.5**n * 1e-4 for n in range(0, 8)]
+
+
+# width 720 sweeps
+# sweep_id = "tpnh1tde" grid [1.5**n * 1e-4 for n in range(-1, 7)]
+
+
+# width 1440 sweeps
+# sweep_id = "wha0xahp" grid [1.5**n * 1e-4 for n in range(-1, 7)]
+# sweep_id = "4g7krj82" grid [1.5**n * 1e-5 for n in range(1, 7)]
 
 
 # %%
