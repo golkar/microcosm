@@ -2,7 +2,6 @@
 #SBATCH -p gpu --gpus=2 -C a100-80gb -n 24  -N 1 -t 36:0:0
 
 export OMP_NUM_THREADS=4
-export MASTER_PORT=29511
 
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate gptLY
