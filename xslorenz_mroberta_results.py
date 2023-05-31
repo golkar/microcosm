@@ -1,6 +1,7 @@
 # %%
 
 import wandb, os, pandas as pd, seaborn as sns, matplotlib.pyplot as plt
+from tqdm import tqdm, numpy as np
 
 # set seaborn style
 sns.set_style("ticks")
@@ -135,7 +136,7 @@ best_run_path = (
 from transformers import RobertaForMaskedLM, PreTrainedTokenizerFast, pipeline
 from datasets import DatasetDict
 
-model = RobertaForMaskedLM.from_pretrained(best_run_path)
+model = RobertaForMaskedLM.from_pretrained(best_run_path).cuda()
 
 
 wrapped_tokenizer = PreTrainedTokenizerFast(
@@ -146,7 +147,7 @@ wrapped_tokenizer = PreTrainedTokenizerFast(
     pad_token="[PAD]",
 )
 
-mask_filler = pipeline("fill-mask", model=model, tokenizer=wrapped_tokenizer)
+mask_filler = pipeline("fill-mask", model=model, tokenizer=wrapped_tokenizer, device=0)
 
 
 # Loading the saved tokenized dataset
@@ -214,4 +215,54 @@ print(
 )
 
 
+# %%
+
+# computing the RMSE of the model output
+
+preds = []
+anss = []
+
+for sample in tqdm(ds_with_ans["test"]):
+    pred = int(mask_filler(sample["masked_text"])[0]["token_str"])
+    ans = sample["answer"]
+
+    preds.append(pred)
+    anss.append(ans)
+
+preds = np.array(preds)
+anss = np.array(anss)
+
+
+# %%
+print("baseline: ", anss.std())
+print("learned:", np.sqrt(np.mean((anss - preds) ** 2)))
+
+# %%
+
+preds = []
+anss = []
+probs = []
+for sample in tqdm(ds_with_ans["test"]):
+    out = mask_filler(sample["masked_text"])
+
+    for el in out:
+        # continue if the token is not a number
+        pred = []
+        score = []
+        if el["token_str"].isnumeric():
+            pred.append(int(el["token_str"]))
+            score.append(el["score"])
+
+    prob = np.zeros(23)
+    prob[pred] = score
+
+    ans = sample["answer"]
+
+    preds.append(pred)
+    anss.append(ans)
+    probs.append(prob)
+
+preds = np.array(preds)
+anss = np.array(anss)
+probs = np.array(probs)
 # %%

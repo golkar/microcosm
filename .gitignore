@@ -160,3 +160,4 @@ saved_models/
 sweeptaskfile_*
 *slurm*
 events.out*
+cache/

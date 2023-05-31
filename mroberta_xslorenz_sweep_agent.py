@@ -72,7 +72,9 @@ def train(config=None):
             config = dict(json.load(f))
 
     # Initialize a new wandb run with the received config
-    with wandb.init(config=config, dir=save_path):
+    with wandb.init(
+        config=config, dir=save_path, mode=None if is_master else "disabled"
+    ):
         wandb_config = wandb.config
 
         if is_master:

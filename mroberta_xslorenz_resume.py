@@ -76,82 +76,83 @@ def train(run_id, chkpt_path):
             config = dict(json.load(f))
 
     # Initialize a new wandb run with the received config
-    with wandb.init(
-        id=run_id, resume="must", project="xslorenz_mroberta", dir=save_path
-    ):
+
+    if is_master:
+        wandb.init(id=run_id, resume="must", project="xslorenz_mroberta", dir=save_path)
+        wandb_config = wandb.config
+        # write wandb config file as a dict to a file in tmp
+        print("Writing wandb config to " + config_file + "...")
+        with open(config_file, "w") as f:
+            json.dump(dict(wandb_config), f)
+    else:
+        wandb.init(config=config, mode="disabled")
         wandb_config = wandb.config
 
-        if is_master:
-            # write wandb config file as a dict to a file in tmp
-            print("Writing wandb config to " + config_file + "...")
-            with open(config_file, "w") as f:
-                json.dump(dict(wandb_config), f)
+    # collating, padding and random masking
+    data_collator = DataCollatorForLanguageModeling(
+        tokenizer=wrapped_tokenizer, mlm_probability=wandb_config.mlm_probability
+    )
 
-        # collating, padding and random masking
-        data_collator = DataCollatorForLanguageModeling(
-            tokenizer=wrapped_tokenizer, mlm_probability=wandb_config.mlm_probability
-        )
+    # Defining the model config from the wandb_config
+    model_config = RobertaConfig(
+        vocab_size=vocab_size,
+        max_position_embeddings=wandb_config.max_position_embeddings,
+        hidden_size=wandb_config.hidden_size,
+        num_hidden_layers=wandb_config.num_hidden_layers,
+        num_attention_heads=wandb_config.num_attention_heads,
+        intermediate_size=wandb_config.intermediate_size,
+        hidden_act=wandb_config.hidden_act,
+        hidden_dropout_prob=wandb_config.hidden_dropout_prob,
+        attention_probs_dropout_prob=wandb_config.attention_probs_dropout_prob,
+    )
+    model = RobertaForMaskedLM.from_pretrained(chkpt_path)
+    # model = RobertaForMaskedLM(config=model_config)
 
-        # Defining the model config from the wandb_config
-        model_config = RobertaConfig(
-            vocab_size=vocab_size,
-            max_position_embeddings=wandb_config.max_position_embeddings,
-            hidden_size=wandb_config.hidden_size,
-            num_hidden_layers=wandb_config.num_hidden_layers,
-            num_attention_heads=wandb_config.num_attention_heads,
-            intermediate_size=wandb_config.intermediate_size,
-            hidden_act=wandb_config.hidden_act,
-            hidden_dropout_prob=wandb_config.hidden_dropout_prob,
-            attention_probs_dropout_prob=wandb_config.attention_probs_dropout_prob,
-        )
-        model = RobertaForMaskedLM.from_pretrained(chkpt_path)
-        # model = RobertaForMaskedLM(config=model_config)
+    # defining the training args
+    training_args = TrainingArguments(
+        output_dir=wandb.run.dir + "/model",
+        overwrite_output_dir=True,
+        num_train_epochs=5,
+        per_device_train_batch_size=8 // world_size,
+        save_total_limit=3,
+        logging_steps=200,
+        report_to="wandb",
+        evaluation_strategy="steps",
+        save_steps=5000,
+        eval_steps=5000,
+        load_best_model_at_end=True,
+        learning_rate=2e-5,
+        warmup_steps=15_000,
+        weight_decay=wandb_config.weight_decay,
+        fp16=wandb_config.fp16,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
+    )
 
-        # defining the training args
-        training_args = TrainingArguments(
-            output_dir=wandb.run.dir + "/model",
-            overwrite_output_dir=True,
-            num_train_epochs=5,
-            per_device_train_batch_size=8 // world_size,
-            save_total_limit=3,
-            logging_steps=200,
-            report_to="wandb",
-            evaluation_strategy="steps",
-            save_steps=5000,
-            eval_steps=5000,
-            load_best_model_at_end=True,
-            learning_rate=2e-5,
-            warmup_steps=10_000,
-            weight_decay=wandb_config.weight_decay,
-            fp16=wandb_config.fp16,
-            metric_for_best_model="eval_loss",
-            greater_is_better=False,
-        )
+    # An empty compute_metrics function to just log val loss
+    def compute_metrics(eval_preds):
+        return {}
 
-        # An empty compute_metrics function to just log val loss
-        def compute_metrics(eval_preds):
-            return {}
+    # defining the trainer
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        data_collator=data_collator,
+        train_dataset=downsampled_dataset["train"],
+        eval_dataset=downsampled_dataset["test"],
+        tokenizer=wrapped_tokenizer,
+        compute_metrics=compute_metrics,
+        # callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
+    )
 
-        # defining the trainer
-        trainer = Trainer(
-            model=model,
-            args=training_args,
-            data_collator=data_collator,
-            train_dataset=downsampled_dataset["train"],
-            eval_dataset=downsampled_dataset["test"],
-            tokenizer=wrapped_tokenizer,
-            compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
-        )
+    # trainer.create_optimizer_and_scheduler(num_training_steps=500_000)
+    # import torch
 
-        trainer.create_optimizer_and_scheduler(num_training_steps=500_000)
-        import torch
+    # trainer.optimizer.load_state_dict(torch.load(chkpt_path + "/optimizer.pt"))
+    # trainer.scaler.load_state_dict(torch.load(chkpt_path + "/scaler.pt"))
 
-        trainer.optimizer.load_state_dict(torch.load(chkpt_path + "/optimizer.pt"))
-        trainer.scaler.load_state_dict(torch.load(chkpt_path + "/scaler.pt"))
-
-        trainer.train()
-        # trainer.train(resume_from_checkpoint=chkpt_path)
+    # trainer.train()
+    trainer.train(resume_from_checkpoint=chkpt_path)
 
 
 # %%

@@ -1,7 +1,8 @@
 #!/bin/bash
-#SBATCH -p gpu --gpus=2 -C a100-80gb -n 24  -N 1 -t 48:0:0
+#SBATCH -p gpu --gpus=2 -C a100-80gb -n 24  -N 1 -t 45:0:0
 
 export OMP_NUM_THREADS=4
+export TRANSFORMERS_CACHE=/mnt/home/sgolkar/projects/microcosm/cache
 
 source ~/anaconda3/etc/profile.d/conda.sh
 master_node=$SLURMD_NODENAME
@@ -17,4 +18,4 @@ torchrun --standalone \
         --rdzv_id $SLURM_JOB_ID \
         --rdzv_backend c10d \
         --rdzv_endpoint $master_node:$SLURM_JOB_ID \
-        mroberta_xslorenz_resume.py --run_id rw7ta38d --chkpt_path /mnt/home/sgolkar/ceph/saves/xslorenz/mroberta/wandb/run-20230529_104249-rw7ta38d/files/model/checkpoint-200000
+        mroberta_xslorenz_resume.py --run_id rw7ta38d --chkpt_path /mnt/home/sgolkar/ceph/saves/xslorenz/mroberta/wandb/run-20230531_162250-rw7ta38d/files/model/checkpoint-25000
