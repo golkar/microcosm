@@ -72,12 +72,12 @@ def train(config=None):
             config = dict(json.load(f))
 
     # Initialize a new wandb run with the received config
-    with wandb.init(config=config, dir=save_path + "wandb"):
+    with wandb.init(config=config, dir=save_path):
         wandb_config = wandb.config
 
         if is_master:
             # write wandb config file as a dict to a file in tmp
-            print("Writing wandb config to /tmp/wandb_config.json")
+            print("Writing wandb config to " + config_file + "...")
             with open(config_file, "w") as f:
                 json.dump(dict(wandb_config), f)
 
@@ -147,9 +147,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    # add sweepid as text argument
+    # add sweep_id as text argument
     parser.add_argument(
-        "--sweepid",
+        "--sweep_id",
         type=str,
         help="The sweep id for the wandb sweep",
     )
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if is_master:
-        wandb.agent(args.sweepid, train, count=args.count, project="xslorenz_mroberta")
+        wandb.agent(args.sweep_id, train, count=args.count, project="xslorenz_mroberta")
     else:
         train(config={})
 # %%

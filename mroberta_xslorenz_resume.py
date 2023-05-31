@@ -1,6 +1,30 @@
 # %%
-import wandb, argparse, deepspeed, time, json, os
+import wandb, os, time, json
 
+# Setting the wandb notebook name environment variable
+os.environ["WANDB_NOTEBOOK_NAME"] = "mroberta_xslorenz_sweep_agent.py"
+wandb.login()
+
+local_rank = int(os.environ.get("LOCAL_RANK", 0))
+global_rank = int(os.environ.get("RANK", 0))
+world_size = int(os.environ.get("WORLD_SIZE", 1))
+
+# get the slurm job id (used later for saving the config file)
+slurm_job_id = os.getenv("SLURM_JOB_ID")
+
+# if running locally, set the slur_job_id to current time
+if slurm_job_id is None:
+    slurm_job_id = int(time.time())
+
+save_path = "/mnt/home/sgolkar/ceph/saves/xslorenz/mroberta/"
+config_file = save_path + str(slurm_job_id)
+
+is_master = global_rank == 0
+
+print("local_rank: ", local_rank)
+print("global_rank: ", global_rank)
+print("world_size: ", world_size)
+print("slurm_job_id: ", slurm_job_id)
 
 # %%
 from transformers import (
@@ -14,8 +38,7 @@ from transformers import (
 )
 from datasets import DatasetDict
 
-# Loading the tokenizer
-
+# Loading the tokenizer and setting the vocab size
 wrapped_tokenizer = PreTrainedTokenizerFast(
     tokenizer_file="tokenizer_lorenz.json",
     bos_token="[END]",
@@ -23,7 +46,6 @@ wrapped_tokenizer = PreTrainedTokenizerFast(
     mask_token="?",
     pad_token="[PAD]",
 )
-
 vocab_size = len(wrapped_tokenizer.vocab)
 
 # Loading the saved tokenized dataset
@@ -39,36 +61,30 @@ downsampled_dataset = tokenized_ds["train"].train_test_split(
 
 
 # %%
-# defining the model initialization function
 
 
-def train(config=None):
-    # log wandb created time
-
-    is_master = cmd_args.local_rank == 0
-
+# defining the train function with wandb config as input
+def train(run_id, chkpt_path):
+    # pausing to read wandb config if not master
     if not is_master:
-        # pause 5 seconds to wait for master to finish setting up
+        # pause 10 seconds to wait for master to finish setting up
         print("Waiting for master to finish setting up...")
-        time.sleep(20)
+        time.sleep(10)
 
         # read wandb config
-        with open("/tmp/wandb_config.json", "r") as f:
+        with open(config_file, "r") as f:
             config = dict(json.load(f))
 
-        # delete wandb config file
-        os.remove("/tmp/wandb_config.json")
-
-    # Initialize a new wandb run
-    with wandb.init(config=config, mode=None if is_master else "disabled"):
-        # If called by wandb.agent, as below,
-        # this config will be set by Sweep Controller
+    # Initialize a new wandb run with the received config
+    with wandb.init(
+        id=run_id, resume="must", project="xslorenz_mroberta", dir=save_path
+    ):
         wandb_config = wandb.config
 
         if is_master:
             # write wandb config file as a dict to a file in tmp
-            print("Writing wandb config to /tmp/wandb_config.json")
-            with open("/tmp/wandb_config.json", "w") as f:
+            print("Writing wandb config to " + config_file + "...")
+            with open(config_file, "w") as f:
                 json.dump(dict(wandb_config), f)
 
         # collating, padding and random masking
@@ -88,29 +104,28 @@ def train(config=None):
             hidden_dropout_prob=wandb_config.hidden_dropout_prob,
             attention_probs_dropout_prob=wandb_config.attention_probs_dropout_prob,
         )
-
-        model = RobertaForMaskedLM(config=model_config)
+        model = RobertaForMaskedLM.from_pretrained(chkpt_path)
+        # model = RobertaForMaskedLM(config=model_config)
 
         # defining the training args
         training_args = TrainingArguments(
             output_dir=wandb.run.dir + "/model",
             overwrite_output_dir=True,
-            num_train_epochs=wandb_config.num_train_epochs,
-            per_device_train_batch_size=4,
-            save_total_limit=2,
+            num_train_epochs=5,
+            per_device_train_batch_size=8 // world_size,
+            save_total_limit=3,
             logging_steps=200,
             report_to="wandb",
             evaluation_strategy="steps",
             save_steps=5000,
             eval_steps=5000,
             load_best_model_at_end=True,
-            learning_rate=wandb_config.learning_rate,
-            warmup_steps=wandb_config.warmup_steps,
+            learning_rate=2e-5,
+            warmup_steps=10_000,
             weight_decay=wandb_config.weight_decay,
             fp16=wandb_config.fp16,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            # deepspeed="./ds_config.json",
         )
 
         # An empty compute_metrics function to just log val loss
@@ -126,42 +141,40 @@ def train(config=None):
             eval_dataset=downsampled_dataset["test"],
             tokenizer=wrapped_tokenizer,
             compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=4)],
         )
 
+        trainer.create_optimizer_and_scheduler(num_training_steps=500_000)
+        import torch
+
+        trainer.optimizer.load_state_dict(torch.load(chkpt_path + "/optimizer.pt"))
+        trainer.scaler.load_state_dict(torch.load(chkpt_path + "/scaler.pt"))
+
         trainer.train()
+        # trainer.train(resume_from_checkpoint=chkpt_path)
 
 
 # %%
 
 if __name__ == "__main__":
-    # Get args
-    parser = argparse.ArgumentParser(description="My training script.")
-    parser.add_argument(
-        "--local_rank",
-        type=int,
-        default=-1,
-        help="local rank passed from distributed launcher",
-    )
+    import argparse
+
+    parser = argparse.ArgumentParser()
 
     # add sweepid as text argument
-
     parser.add_argument(
-        "--sweepid",
+        "--run_id",
         type=str,
-        help="The run id of the wandb run to resume",
+        help="The sweep id for the wandb sweep",
     )
 
-    # # Include DeepSpeed configuration arguments
-    # parser = deepspeed.add_config_arguments(parser)
+    parser.add_argument(
+        "--chkpt_path",
+        type=str,
+        help="Path to the checkpoint to resume from",
+    )
 
-    cmd_args = parser.parse_args()
+    args = parser.parse_args()
 
-    if cmd_args.local_rank == 0:  # only on main process
-        # Initialize wandb run
-        wandb.agent(cmd_args.sweepid, train, count=1, project="xslorenz_mroberta")
-    else:
-        train(config={})
-
-
+    train(run_id=args.run_id, chkpt_path=args.chkpt_path)
 # %%

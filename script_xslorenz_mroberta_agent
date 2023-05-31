@@ -6,4 +6,5 @@ export OMP_NUM_THREADS=4
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate gptLY
 cd ~/projects/microcosm
-python -m torch.distributed.launch --master_port $MASTER_PORT --nproc_per_node 2 mroberta_xslorenz_sweep_agent_ds_2gpu.py --sweepid  4g7krj82 
+python -m torch.distributed.launch --master_port $SLURM_JOB_ID --nproc_per_node $SLURM_GPUS_PER_NODE \
+         mroberta_xslorenz_sweep_agent.py --sweep_id  4g7krj82
