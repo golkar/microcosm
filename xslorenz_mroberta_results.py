@@ -109,8 +109,109 @@ hidden_sizes = list(set(df_bests["hidden_size"]))
 ax.set_xticks(
     hidden_sizes, [str(num_params[el] // 1000000) + "M" for el in hidden_sizes]
 )
-
+ax.set_xlabel("Number of parameters")
 ax.legend().set_visible(False)
 
 ax.grid(axis="y")
 sns.despine(offset=15)
+
+# %%
+
+# get the lowest eval/loss in the dataframe
+best_run = df.loc[df["eval/loss"].idxmin()]
+
+save_path = "/mnt/home/sgolkar/ceph/saves/xslorenz/mroberta/wandb/"
+
+# get the folder in save_path that includes the best_run id
+best_run_path = (
+    save_path
+    + [dir for dir in os.listdir(save_path) if best_run["id"] in dir][0]
+    + "/files/model/checkpoint-200000"
+)
+
+
+# %%
+
+from transformers import RobertaForMaskedLM, PreTrainedTokenizerFast, pipeline
+from datasets import DatasetDict
+
+model = RobertaForMaskedLM.from_pretrained(best_run_path)
+
+
+wrapped_tokenizer = PreTrainedTokenizerFast(
+    tokenizer_file="tokenizer_lorenz.json",
+    bos_token="[END]",
+    eos_token="[END]",
+    mask_token="?",
+    pad_token="[PAD]",
+)
+
+mask_filler = pipeline("fill-mask", model=model, tokenizer=wrapped_tokenizer)
+
+
+# Loading the saved tokenized dataset
+path = "/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_xsmall/clean/"
+tokenized_ds = DatasetDict.load_from_disk(path + "tokenized_ds")
+# %%
+
+path = "/mnt/home/sgolkar/ceph/datasets/microcosm/lorenz_world_xsmall/clean/"
+ds = DatasetDict.from_text(
+    {"train": path + "train_set", "test": path + "test_set", "val": path + "val_set"}
+)
+
+# %%
+
+
+def remove_params(sample):
+    text = sample["text"].replace(" ", "")
+    split1 = text.partition("params':[")
+    split2 = [split1[0], "params':[?.", split1[2].partition(".")[2]]
+    ans = int(split1[2].partition(".")[0])
+    masked_text = "".join(split2)
+    return {"masked_text": masked_text, "answer": ans}
+
+
+ds_with_ans = ds.map(remove_params, batched=False, num_proc=30)
+
+# %%
+
+sample = ds_with_ans["val"][0]
+preds = mask_filler(sample["masked_text"])
+
+print("correct answer:", sample["answer"])
+for pred in preds:
+    print(pred["score"], pred["token_str"])
+# %%
+
+sample = ds_with_ans["val"][4]
+preds = mask_filler(sample["masked_text"])
+
+print("correct answer:", sample["answer"])
+for pred in preds:
+    print(pred["score"], pred["token_str"])
+
+# %%
+
+sample = ds_with_ans["val"][12]
+preds = mask_filler(sample["masked_text"])
+
+print("correct answer:", sample["answer"])
+for pred in preds:
+    print(pred["score"], pred["token_str"])
+# %%
+import numpy as np
+
+ans_dist_train = np.array(ds_with_ans["train"]["answer"])
+ans_mean_train = np.mean(ans_dist_train)
+sns.histplot(ans_dist_train, stat="probability")
+plt.axvline(ans_mean_train, color="red", linestyle="--")
+plt.show()
+
+ans_dist_test = np.array(ds_with_ans["test"]["answer"])
+print(
+    "RMSE of the baseline (mean) on the test set:",
+    np.sqrt(np.mean((ans_dist_test - ans_mean_train) ** 2)),
+)
+
+
+# %%

@@ -98,7 +98,7 @@ samples = [tokenized_ds["train"][i] for i in range(1)]
 
 # %%
 
-hidden_size = 720 * 2
+hidden_size = 1440
 
 config = RobertaConfig(
     vocab_size=vocab_size,
@@ -111,7 +111,7 @@ config = RobertaConfig(
 )
 
 model = RobertaForMaskedLM(config=config)
-print(f"{model.num_parameters():,}")
+print(hidden_size, f"{model.num_parameters():,}")
 
 # %%
 
