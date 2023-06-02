@@ -1,7 +1,8 @@
 # %%
 
 import wandb, os, pandas as pd, seaborn as sns, matplotlib.pyplot as plt
-from tqdm import tqdm, numpy as np
+from tqdm import tqdm
+import numpy as np
 
 # set seaborn style
 sns.set_style("ticks")
@@ -25,9 +26,10 @@ num_params = {
 }
 
 for run in runs:
-    if run.state != "finished":
-        if run.state == "running":
-            print("running ", run.config["hidden_size"])
+    if run.state not in ["finished", "running"]:
+        # if run.state == "running":
+        #     print("running ", run.config["hidden_size"])
+        #     print(run.summary['eval/loss'])
         continue
 
     run_dict = {
@@ -124,12 +126,13 @@ best_run = df.loc[df["eval/loss"].idxmin()]
 save_path = "/mnt/home/sgolkar/ceph/saves/xslorenz/mroberta/wandb/"
 
 # get the folder in save_path that includes the best_run id
-best_run_path = (
-    save_path
-    + [dir for dir in os.listdir(save_path) if best_run["id"] in dir][0]
-    + "/files/model/checkpoint-200000"
-)
+# best_run_path = (
+#     save_path
+#     + [dir for dir in os.listdir(save_path) if best_run["id"] in dir][0]
+#     + "/files/model/checkpoint-200000"
+# )
 
+best_run_path = "/mnt/home/sgolkar/ceph/saves/xslorenz/mroberta/wandb/run-20230529_104249-rw7ta38d/files/model/checkpoint-200000"
 
 # %%
 
@@ -178,32 +181,17 @@ ds_with_ans = ds.map(remove_params, batched=False, num_proc=30)
 
 sample = ds_with_ans["val"][0]
 preds = mask_filler(sample["masked_text"])
-
-print("correct answer:", sample["answer"])
-for pred in preds:
-    print(pred["score"], pred["token_str"])
-# %%
-
-sample = ds_with_ans["val"][4]
-preds = mask_filler(sample["masked_text"])
+print(sample["masked_text"])
 
 print("correct answer:", sample["answer"])
 for pred in preds:
     print(pred["score"], pred["token_str"])
 
-# %%
-
-sample = ds_with_ans["val"][12]
-preds = mask_filler(sample["masked_text"])
-
-print("correct answer:", sample["answer"])
-for pred in preds:
-    print(pred["score"], pred["token_str"])
 # %%
 import numpy as np
 
 ans_dist_train = np.array(ds_with_ans["train"]["answer"])
-ans_mean_train = np.mean(ans_dist_train)
+ans_mean_train = int(np.mean(ans_dist_train))
 sns.histplot(ans_dist_train, stat="probability")
 plt.axvline(ans_mean_train, color="red", linestyle="--")
 plt.show()
@@ -214,55 +202,92 @@ print(
     np.sqrt(np.mean((ans_dist_test - ans_mean_train) ** 2)),
 )
 
+# %%
+
+# preds = []
+# anss = []
+# probs = []
+# for sample in tqdm(ds_with_ans["test"]):
+#     out = mask_filler(sample["masked_text"])
+
+#     pred = []
+#     score = []
+#     miss_count = 0
+#     for el in out:
+#         # continue if the token is not a number
+#         if el["token_str"].isnumeric():
+#             pred.append(int(el["token_str"]))
+#             score.append(el["score"])
+#         else:
+#             miss_count += 1
+
+#     prob = np.zeros(100)
+#     prob[pred] = score
+
+#     ans = sample["answer"]
+
+#     preds.append(pred+[99]*miss_count)
+#     anss.append(ans)
+#     probs.append(prob)
+
+# preds = np.array(preds)
+# anss = np.array(anss)
+# probs = np.array(probs)
+
+# # save preds, anss, probs to numpy file
+# np.savez(
+#     "./preds_anss_probs.npz",
+#     preds=preds,
+#     anss=anss,
+#     probs=probs,
+# )
+
+# load preds, anss, probs from numpy file
+preds_anss_probs = np.load("./preds_anss_probs.npz")
+
+anss = preds_anss_probs["anss"]
+preds = preds_anss_probs["preds"]
+probs = preds_anss_probs["probs"]
+
+top_digits = np.argsort([(ans_dist_train == el).mean() for el in range(23)])[::-1]
+
+# %%
+print("baseline RMSE: ", anss.std())
+print("learned RMSE:", np.sqrt(np.mean((anss - preds[:, 0]) ** 2)))
+# %%
+# comparing baseline and learned top 1 accuracy
+print("baseline top 1 accuracy: {:.1%}".format((anss == ans_mean_train).mean()))
+print("learned top 1 accuracy: {:.1%}".format((anss == preds[:, 0]).mean()))
+
+# %%
+# comparing baseline and learned top 2 accuracy
+baseline_top2 = [ans in top_digits[:2] for ans in anss]
+print("baseline top 2 accuracy: {:.1%}".format(np.mean(baseline_top2)))
+learned_top2 = [ans in pred[:2] for ans, pred in zip(anss, preds)]
+print("learned top 2 accuracy: {:.1%}".format(np.mean(learned_top2)))
+
+# %%
+# comparing baseline and learned top 3 accuracy
+baseline_top3 = [ans in top_digits[:3] for ans in anss]
+print("baseline top 3 accuracy: {:.1%}".format(np.mean(baseline_top3)))
+learned_top3 = [ans in pred[:3] for ans, pred in zip(anss, preds)]
+print("learned top 3 accuracy: {:.1%}".format(np.mean(learned_top3)))
+
+# %%
+# comparing baseline and learned top 5 accuracy
+baseline_top5 = [ans in top_digits[:5] for ans in anss]
+print("baseline top 5 accuracy: {:.1%}".format(np.mean(baseline_top5)))
+learned_top5 = [ans in pred[:5] for ans, pred in zip(anss, preds)]
+print("learned top 5 accuracy: {:.1%}".format(np.mean(learned_top5)))
 
 # %%
 
-# computing the RMSE of the model output
-
-preds = []
-anss = []
-
-for sample in tqdm(ds_with_ans["test"]):
-    pred = int(mask_filler(sample["masked_text"])[0]["token_str"])
-    ans = sample["answer"]
-
-    preds.append(pred)
-    anss.append(ans)
-
-preds = np.array(preds)
-anss = np.array(anss)
-
-
+# sns histogram of the difference between true answer and the predicted answer
+sns.histplot(anss - preds[:, 0], stat="probability")
 # %%
-print("baseline: ", anss.std())
-print("learned:", np.sqrt(np.mean((anss - preds) ** 2)))
+# computing the cross entropy
+baseline_probs = np.array([(ans_dist_train == el).mean() for el in range(23)])
+print("baseline cross entropy:", -np.log(baseline_probs[anss]).mean())
+print("learned cross entropy:", -np.log(probs[range(len(anss)), anss]).mean())
 
-# %%
-
-preds = []
-anss = []
-probs = []
-for sample in tqdm(ds_with_ans["test"]):
-    out = mask_filler(sample["masked_text"])
-
-    for el in out:
-        # continue if the token is not a number
-        pred = []
-        score = []
-        if el["token_str"].isnumeric():
-            pred.append(int(el["token_str"]))
-            score.append(el["score"])
-
-    prob = np.zeros(23)
-    prob[pred] = score
-
-    ans = sample["answer"]
-
-    preds.append(pred)
-    anss.append(ans)
-    probs.append(prob)
-
-preds = np.array(preds)
-anss = np.array(anss)
-probs = np.array(probs)
 # %%

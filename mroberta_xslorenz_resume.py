@@ -110,7 +110,8 @@ def train(run_id, chkpt_path):
 
     # defining the training args
     training_args = TrainingArguments(
-        output_dir=wandb.run.dir + "/model",
+        # output_dir=wandb.run.dir + "/model",
+        output_dir="/mnt/home/sgolkar/ceph/saves/xslorenz/mroberta/wandb/run-20230531_162250-rw7ta38d/files/model/",
         overwrite_output_dir=True,
         num_train_epochs=5,
         per_device_train_batch_size=8 // world_size,
@@ -152,7 +153,7 @@ def train(run_id, chkpt_path):
     # trainer.scaler.load_state_dict(torch.load(chkpt_path + "/scaler.pt"))
 
     # trainer.train()
-    trainer.train(resume_from_checkpoint=chkpt_path)
+    trainer.train(resume_from_checkpoint=True)
 
 
 # %%
