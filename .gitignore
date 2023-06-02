@@ -161,3 +161,4 @@ sweeptaskfile_*
 *slurm*
 events.out*
 cache/
+microcosm.code-workspace
