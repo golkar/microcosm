@@ -92,8 +92,8 @@ data_collator = DataCollatorForLanguageModeling(
 # an example of the output of the data_collator
 samples = [tokenized_ds["train"][i] for i in range(1)]
 
-# for chunk in data_collator(samples)["input_ids"]:
-#     print(wrapped_tokenizer.decode(chunk))
+for chunk in data_collator(samples)["input_ids"]:
+    print(wrapped_tokenizer.decode(chunk))
 
 
 # %%
