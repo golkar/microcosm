@@ -64,12 +64,6 @@ with open(
 
 dataset = out.split("\n")[:-1]
 
-
-def get_training_corpus():
-    for i in range(0, len(dataset), 1000):
-        yield dataset[i : i + 1000]
-
-
 tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
 
 tokenizer.post_processor = processors.ByteLevel(trim_offsets=False)
