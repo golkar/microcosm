@@ -63,7 +63,7 @@ To do a hyperparameter search you can setu up WandB sweeps. [Here](https://githu
 
 To do this for your own project, you'll need to set up a new wandb project up and refer to that in your code. Also you need to modify the slurm script to request gpu's appropriate for your training.
 
-* If you're running a similar model on similar data, instead of running a sweep you can just use the hyperparameters that worked best for this project. These are given by:
+* If you're running a similar model on similar data, instead of running a sweep you can just use the hyperparameters that worked best for this project (you can do this by providing the following dict to the train function as the config, instead of calling the training via wandb.agent at the bottom). These are given by:
 
 {
     "learning_rate": {"value": 1e-4},
