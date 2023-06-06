@@ -106,6 +106,7 @@ def sample_world(
     max_dim=MAX_DIM,
     min_dim=MIN_DIM,
     max_sys=MAX_SYS,
+    step_multip=None,
 ):
     def tl(x):
         if to_list:
@@ -132,7 +133,7 @@ def sample_world(
     for j, (num, multip_num) in enumerate(zip(sys_number, sys_multip)):
         success = False
         sys_name = sys_names[num]
-        multip = step_multips[multip_num]
+        multip = step_multips[multip_num] if step_multip == None else step_multip
 
         if sys_name == "lorenz":
             for i in range(num_tries):

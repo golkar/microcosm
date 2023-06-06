@@ -1,0 +1,213 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "padding": null,
+  "added_tokens": [
+    {
+      "id": 8,
+      "special": true,
+      "content": "[END]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
+    },
+    {
+      "id": 9,
+      "special": true,
+      "content": "?",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
+    },
+    {
+      "id": 10,
+      "special": true,
+      "content": "[PAD]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
+    },
+    {
+      "id": 11,
+      "special": false,
+      "content": "'sys0':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 12,
+      "special": false,
+      "content": "'sys1':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 13,
+      "special": false,
+      "content": "'sys2':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 14,
+      "special": false,
+      "content": "'sys3':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 15,
+      "special": false,
+      "content": "'sys4':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 16,
+      "special": false,
+      "content": "'num_sys':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 17,
+      "special": false,
+      "content": "'params':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 18,
+      "special": false,
+      "content": "'data':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 19,
+      "special": false,
+      "content": "'description':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 20,
+      "special": false,
+      "content": "'step_size':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 21,
+      "special": false,
+      "content": "'init_point':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 22,
+      "special": false,
+      "content": "'step_multip':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 23,
+      "special": false,
+      "content": "'name':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 24,
+      "special": false,
+      "content": "'lorenz'",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 25,
+      "special": false,
+      "content": "'normalization':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    },
+    {
+      "id": 26,
+      "special": false,
+      "content": "'embedding':",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": true
+    }
+  ],
+  "normalizer": null,
+  "pre_tokenizer": {
+    "type": "ByteLevel",
+    "add_prefix_space": false,
+    "trim_offsets": true
+  },
+  "post_processor": {
+    "type": "ByteLevel",
+    "add_prefix_space": true,
+    "trim_offsets": false
+  },
+  "decoder": {
+    "type": "ByteLevel",
+    "add_prefix_space": true,
+    "trim_offsets": true
+  },
+  "model": {
+    "type": "BPE",
+    "dropout": null,
+    "unk_token": null,
+    "continuing_subword_prefix": null,
+    "end_of_word_suffix": null,
+    "fuse_unk": false,
+    "vocab": {
+      "{": 0,
+      "}": 1,
+      "[": 2,
+      "]": 3,
+      ",": 4,
+      ".": 5,
+      "-": 6,
+      "#": 7
+    },
+    "merges": []
+  }
+}
