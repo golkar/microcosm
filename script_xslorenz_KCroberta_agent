@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH -p gpu --gpus=2 -C a100-40gb -n 24  -N 1 -t 24:0:0
+
+export OMP_NUM_THREADS=10
+export TRANSFORMERS_CACHE=/mnt/home/sgolkar/projects/microcosm/cache
+
+source ~/anaconda3/etc/profile.d/conda.sh
+conda activate gptLY
+cd ~/projects/microcosm
+torchrun --nnodes 1 \
+        --nproc_per_node 2 \
+        --rdzv_id $SLURM_JOB_ID \
+        --rdzv_backend c10d \
+        --rdzv_endpoint $master_node:$SLURM_JOB_ID \
+        KCroberta_xslorenz_sweep_agent.py --sweep_id wqeq85eb 

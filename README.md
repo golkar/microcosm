@@ -54,7 +54,6 @@ Defining the model via HF is easy (lines 100-130 of [here](https://github.com/go
 
 Some pointers:
 * Set the max_position_embeddings to the longest tokenized sample length in your dataset. This is basically the longest sequence that can be handled because the model needs to set up positional encodings.
-* Passing an empty compute_metrics function (as in lines 147 and 157) tells the trainer to report the validation loss. Without this, no validation results will be logged. 
 * Having report_to="wandb" on line 142 will log all the  stats to WandB. It's very convenient. 
 
 #### 5. Train on the cluster! (WandB sweep)

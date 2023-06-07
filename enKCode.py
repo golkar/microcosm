@@ -3,7 +3,7 @@
 # %autoreload 2
 
 # check number replacement and tokenization give the correct original text
-check_again = True
+check_again = False
 # how many samples to check
 check_number = 20000
 

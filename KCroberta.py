@@ -35,17 +35,25 @@ class MaskedLMOutputWithNumbers(ModelOutput):
 
 
 class KCRobertaForMaskedLM(RobertaForMaskedLM):
+    _keys_to_ignore_on_save = [r"lm_head.decoder.weight", r"lm_head.decoder.bias"]
+    _keys_to_ignore_on_load_missing = [
+        r"position_ids",
+        r"lm_head.decoder.weight",
+        r"lm_head.decoder.bias",
+    ]
+    _keys_to_ignore_on_load_unexpected = [r"pooler"]
+
     def __init__(self, config, power_num=1):
         super().__init__(config)
-        self.roberta = KCRobertaModel(config, add_pooling_layer=False, power_num=1)
 
-        # defining a new head for calculating the numbers
-        # the head is just like a normal LM head but spits out a scalar
-        # instead of a distribution over the vocabs
+        self.roberta = KCRobertaModel(config, add_pooling_layer=False, power_num=1)
         numberhead_config = copy.deepcopy(config)
         numberhead_config.vocab_size = 1
         self.number_head = RobertaLMHead(numberhead_config)
         self.power_num = power_num
+
+        # Initialize weights and apply final processing
+        self.post_init()
 
     def forward(
         self,
@@ -95,6 +103,8 @@ class KCRobertaForMaskedLM(RobertaForMaskedLM):
         prediction_numbers = self.number_head(sequence_output).squeeze(2)
 
         masked_lm_loss = None
+        masked_numbers_loss = None
+        loss_total = None
         if labels is not None:
             # move labels to correct device to enable model parallelism
             labels = labels.to(prediction_scores.device)
@@ -108,6 +118,8 @@ class KCRobertaForMaskedLM(RobertaForMaskedLM):
                 odd_pow(numbers, self.power_num).type_as(prediction_numbers),
             )
 
+            loss_total = masked_lm_loss + masked_numbers_loss
+
         if not return_dict:
             output = (prediction_scores,) + outputs[2:]
             return (
@@ -115,7 +127,7 @@ class KCRobertaForMaskedLM(RobertaForMaskedLM):
             )
 
         return MaskedLMOutputWithNumbers(
-            loss=masked_lm_loss + masked_numbers_loss,
+            loss=loss_total,
             loss_mlm=masked_lm_loss,
             loss_numbers=masked_numbers_loss,
             logits=prediction_scores,
@@ -129,6 +141,9 @@ class KCRobertaModel(RobertaModel):
     def __init__(self, config, add_pooling_layer=True, power_num=1):
         super().__init__(config=config, add_pooling_layer=add_pooling_layer)
         self.embeddings = KCRobertaEmbeddings(config, power_num=1)
+
+        # Initialize weights and apply final processing
+        self.post_init()
 
     def forward(
         self,

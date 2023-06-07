@@ -162,3 +162,5 @@ sweeptaskfile_*
 events.out*
 cache/
 microcosm.code-workspace
+KCroberta_xslorenz/
+*.pkl
