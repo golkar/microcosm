@@ -14,5 +14,5 @@ torchrun --nnodes 1 \
         --nproc_per_node 2 \
         --rdzv_id $SLURM_JOB_ID \
         --rdzv_backend c10d \
-        --rdzv_endpoint $master_node:29412 \
-        KCroberta_mlp_xslorenz_sweep_agent.py --sweep_id 5tmp2oca
+        --rdzv_endpoint $master_node:29407 \
+        KCroberta_mlp_xslorenz_sweep_agent.py --sweep_id 004vcml3

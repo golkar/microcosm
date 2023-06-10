@@ -24,6 +24,7 @@ parameters_dict = {
     "weight_decay": {"value": 0.0001},
     "fp16": {"value": True},
     "power_num": {"value": 1 / 2},
+    "number_embed_size": {"value": 32},
 }
 
 parameters_dict["intermediate_size"] = {
@@ -40,5 +41,8 @@ sweep_id = wandb.sweep(sweep_config, project="xslorenz_kcroberta_mlp")
 
 # width 720 sweeps, power_num 1/2
 # sweep_id = "5tmp2oca", grid: lr [2 * 1.5**n * 1e-5 for n in range(10)]
+
+# width 720 sweeps, power_num 1/2, number_embed_size = 32
+# sweep_id = "004vcml3", grid: lr [2 * 1.5**n * 1e-5 for n in range(10)]
 
 # %%

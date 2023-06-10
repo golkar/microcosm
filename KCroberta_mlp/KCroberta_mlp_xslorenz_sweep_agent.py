@@ -102,7 +102,9 @@ def train(config=None):
             attention_probs_dropout_prob=wandb_config.attention_probs_dropout_prob,
         )
         model = KCRobertaForMaskedLMMLP(
-            config=model_config, power_num=wandb_config.power_num
+            config=model_config,
+            power_num=wandb_config.power_num,
+            number_embed_size=wandb_config.number_embed_size,
         )
 
         # defining the training args
