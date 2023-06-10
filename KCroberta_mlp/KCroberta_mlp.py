@@ -45,7 +45,19 @@ class KCRobertaForMaskedLMMLP(RobertaForMaskedLM):
     ]
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
 
-    def __init__(self, config, power_num=1, number_embed_size=32):
+    def __init__(
+        self,
+        config,
+        power_num=1,
+        number_embed_size=32,
+        zero_others=True,
+        multiply_num_embedding=False,
+        number_token=None,
+    ):
+        if zero_others:
+            assert (
+                number_token is not None
+            ), "number_token must be given if zeroing non-number number embeding."
         super().__init__(config)
 
         self.roberta = KCRobertaModelMLP(
@@ -53,6 +65,9 @@ class KCRobertaForMaskedLMMLP(RobertaForMaskedLM):
             add_pooling_layer=False,
             power_num=1,
             number_embed_size=number_embed_size,
+            zero_others=zero_others,
+            multiply_num_embedding=multiply_num_embedding,
+            number_token=number_token,
         )
         numberhead_config = copy.deepcopy(config)
         numberhead_config.vocab_size = 1
@@ -146,11 +161,23 @@ class KCRobertaForMaskedLMMLP(RobertaForMaskedLM):
 
 class KCRobertaModelMLP(RobertaModel):
     def __init__(
-        self, config, add_pooling_layer=True, power_num=1, number_embed_size=32
+        self,
+        config,
+        add_pooling_layer=True,
+        power_num=1,
+        number_embed_size=32,
+        zero_others=True,
+        multiply_num_embedding=False,
+        number_token=None,
     ):
         super().__init__(config=config, add_pooling_layer=add_pooling_layer)
         self.embeddings = KCRobertaEmbeddingsMLP(
-            config, power_num=1, number_embed_size=number_embed_size
+            config,
+            power_num=1,
+            number_embed_size=number_embed_size,
+            zero_others=zero_others,
+            multiply_num_embedding=multiply_num_embedding,
+            number_token=number_token,
         )
 
         # Initialize weights and apply final processing
@@ -317,17 +344,29 @@ class KCRobertaModelMLP(RobertaModel):
 
 
 class KCRobertaEmbeddingsMLP(RobertaEmbeddings):
-    def __init__(self, config, power_num=1, number_embed_size=32):
+    def __init__(
+        self,
+        config,
+        power_num=1,
+        number_embed_size=32,
+        zero_others=True,
+        multiply_num_embedding=False,
+        number_token=None,
+    ):
         super().__init__(config=config)
+
         self.power_num = power_num
+        self.zero_others = zero_others
+        self.number_token = number_token
+        self.multiply_num_embedding = multiply_num_embedding
 
         self.dense1_numb = nn.Linear(1, config.hidden_size)
         self.dense2_numb = nn.Linear(config.hidden_size, number_embed_size)
         self.decoder_numb = nn.Linear(number_embed_size, config.hidden_size)
 
         # make the decode weights and biases smaller at initialization
-        self.decoder_numb.weight.data = self.decoder_numb.weight.data / 30
-        self.decoder_numb.bias.data = self.decoder_numb.bias.data / 30
+        self.decoder_numb.weight.data = self.decoder_numb.weight.data / 5
+        self.decoder_numb.bias.data = self.decoder_numb.bias.data / 5
 
     def forward(
         self,
@@ -373,6 +412,8 @@ class KCRobertaEmbeddingsMLP(RobertaEmbeddings):
 
         if inputs_embeds is None:
             inputs_embeds = self.word_embeddings(input_ids)
+
+            # encoding the numerical values
             if masked_numbers is not None:
                 # taking a power of the numbers for increased dynamic range
                 masked_numbers_pow = (
@@ -381,7 +422,8 @@ class KCRobertaEmbeddingsMLP(RobertaEmbeddings):
                     .type_as(inputs_embeds)
                 )
 
-                inputs_embeds = inputs_embeds * masked_numbers_pow
+                if self.multiply_num_embedding:
+                    inputs_embeds = inputs_embeds * masked_numbers_pow
 
                 # passing the masked_numbers_pow through the dense, ,gelu, layer norm and decoder layers
                 masked_numbers_pow = self.dense1_numb(masked_numbers_pow)
@@ -389,6 +431,14 @@ class KCRobertaEmbeddingsMLP(RobertaEmbeddings):
                 masked_numbers_pow = self.dense2_numb(masked_numbers_pow)
                 masked_numbers_pow = gelu(masked_numbers_pow)
                 masked_numbers_pow = self.decoder_numb(masked_numbers_pow)
+
+                if self.zero_others:
+                    # zeroing the embeddings of non-number tokens
+                    masked_numbers_pow = masked_numbers_pow * (
+                        (input_ids == self.number_token)
+                        .unsqueeze(-1)
+                        .type_as(masked_numbers_pow)
+                    )
 
                 inputs_embeds = inputs_embeds + masked_numbers_pow
 

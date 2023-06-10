@@ -10,7 +10,7 @@ sweep_config = {"method": "grid"}
 metric = {"name": "loss", "goal": "minimize"}
 
 parameters_dict = {
-    "learning_rate": {"values": [2 * 1.5**n * 1e-5 for n in range(10)]},
+    "learning_rate": {"values": [2 * 1.5**n * 1e-5 for n in range(-1, 7)]},
     "max_position_embeddings": {"value": 1150},
     "hidden_size": {"value": 720},  # needs to be divisible by num_attention_heads
     "num_hidden_layers": {"value": 12},
@@ -25,6 +25,8 @@ parameters_dict = {
     "fp16": {"value": True},
     "power_num": {"value": 1 / 2},
     "number_embed_size": {"value": 32},
+    "zero_others": {"value": True},
+    "multiply_num_embedding": {"value": False},
 }
 
 parameters_dict["intermediate_size"] = {
@@ -44,5 +46,8 @@ sweep_id = wandb.sweep(sweep_config, project="xslorenz_kcroberta_mlp")
 
 # width 720 sweeps, power_num 1/2, number_embed_size = 32
 # sweep_id = "004vcml3", grid: lr [2 * 1.5**n * 1e-5 for n in range(10)]
+
+# width 720 sweeps, power_num 1/2, number_embed_size = 32, zero_others = True, multiply_num_embedding = False
+# sweep_id = "ezcuv7si", grid: lr [2 * 1.5**n * 1e-5 for n in range(-1, 7)]
 
 # %%

@@ -42,7 +42,7 @@ tokenizer = PreTrainedTokenizerFast(
     mask_token="?",
     pad_token="[PAD]",
 )
-
+number_token = tokenizer("#")["input_ids"][0]
 vocab_size = len(tokenizer.vocab)
 
 # Loading the saved tokenized dataset
@@ -105,6 +105,9 @@ def train(config=None):
             config=model_config,
             power_num=wandb_config.power_num,
             number_embed_size=wandb_config.number_embed_size,
+            zero_others=wandb_config.zero_others,
+            multiply_num_embedding=wandb_config.multiply_num_embedding,
+            number_token=number_token,
         )
 
         # defining the training args
@@ -127,6 +130,9 @@ def train(config=None):
             metric_for_best_model="eval_loss",
             greater_is_better=False,
         )
+
+        if is_master:
+            print("Model save path: " + wandb.run.dir + "/model")
 
         # Reporting the mlm loss and the numbers loss
         def compute_metrics(eval_preds):
