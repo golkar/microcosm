@@ -87,6 +87,7 @@ training_args = TrainingArguments(
     learning_rate=0.00002,
     warmup_steps=2000,
     weight_decay=0.0001,
+    report_to="none",
 )
 
 
